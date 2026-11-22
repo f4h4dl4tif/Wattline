@@ -1,0 +1,25 @@
+.DS_Store
+.build/
+.build-*/
+build/
+dist/
+.swiftpm/
+xcuserdata/
+DerivedData/
+# secrets and signing material — never commit
+signing/
+*.keychain-db
+keychain-password.txt
+Tools/keys/
+*.p12
+*.key
+*.mobileprovision
+.env
+# packaged output
+*.dmg
+*.pkg
+*.zip
+# python
+.venv/
+__pycache__/
+*.pyc

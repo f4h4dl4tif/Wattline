@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleName</key><string>Wattline</string>
+	<key>CFBundleDisplayName</key><string>Wattline</string>
+	<key>CFBundleExecutable</key><string>Wattline</string>
+	<key>CFBundleIdentifier</key><string>local.wattline.Wattline</string>
+	<key>CFBundleIconFile</key><string>AppIcon</string>
+	<key>CFBundlePackageType</key><string>APPL</string>
+	<key>CFBundleShortVersionString</key><string>1.1</string>
+	<key>CFBundleVersion</key><string>2</string>
+	<key>LSMinimumSystemVersion</key><string>14.0</string>
+	<key>LSUIElement</key><true/>
+	<key>LSApplicationCategoryType</key><string>public.app-category.utilities</string>
+	<key>NSHighResolutionCapable</key><true/>
+	<key>NSPrincipalClass</key><string>NSApplication</string>
+	<key>CFBundleURLTypes</key>
+	<array><dict>
+		<key>CFBundleURLName</key><string>local.wattline.Wattline</string>
+		<key>CFBundleURLSchemes</key><array><string>wattline</string></array>
+	</dict></array>
+	<key>NSCalendarsFullAccessUsageDescription</key><string>Wattline warns you when the battery won't last through a meeting. It reads only when events start and end and whether they have a location, never titles, places or attendees. It can also charge to 100% before busy days.</string>
+	<key>NSCalendarsUsageDescription</key><string>Wattline warns you when the battery won't last through a meeting.</string>
+</dict>
+</plist>

@@ -1,0 +1,21 @@
+#!/bin/bash
+# 1. Let Wattline switch Low Power Mode without asking for a password.
+#    The rule allows exactly two commands, for administrators only, and nothing else.
+RULE=/etc/sudoers.d/wattline
+TMP=$(/usr/bin/mktemp)
+cat > "$TMP" <<'RULES'
+# Installed by Wattline: lets it turn Low Power Mode on and off. Remove this file to undo.
+%admin ALL=(root) NOPASSWD: /usr/bin/pmset -a lowpowermode 0, /usr/bin/pmset -a lowpowermode 1
+RULES
+if /usr/sbin/visudo -cf "$TMP" >/dev/null 2>&1; then
+  /usr/bin/install -m 0440 -o root -g wheel "$TMP" "$RULE"
+fi
+/bin/rm -f "$TMP"
+
+# 2. Open Wattline for the person who is logged in (the installer itself runs as root).
+USER_NAME=$(/usr/bin/stat -f%Su /dev/console)
+if [ -n "$USER_NAME" ] && [ "$USER_NAME" != "root" ]; then
+  USER_ID=$(/usr/bin/id -u "$USER_NAME")
+  /bin/launchctl asuser "$USER_ID" /usr/bin/sudo -u "$USER_NAME" /usr/bin/open -g /Applications/Wattline.app || true
+fi
+exit 0
