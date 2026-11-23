@@ -45,6 +45,7 @@ struct PanelView: View {
         .padding(.top, 12)
         .padding(.bottom, 8)
         .frame(width: Theme.panelWidth)
+        .environment(\.glassPanel, prefs.useGlass)
         .onChange(of: model.panelOpen) { _, open in if !open { selected = nil; hovered = nil; selectedDay = nil } }
     }
 
@@ -55,9 +56,9 @@ struct PanelView: View {
             HStack {
                 Text("Battery").font(.system(size: 13, weight: .bold))
                 Spacer()
-                if b.hasBattery { Text("\(b.percent)%").font(.system(size: 13)).monospacedDigit().foregroundStyle(.secondary) }
+                if b.hasBattery { Text("\(b.percent)%").font(.system(size: 13)).monospacedDigit().foregroundStyle(.panelSecondary) }
             }
-            Text("Power Source: \(b.powerSource)").font(.system(size: 11)).foregroundStyle(.secondary)
+            Text("Power Source: \(b.powerSource)").font(.system(size: 11)).foregroundStyle(.panelSecondary)
         }
     }
 
@@ -68,14 +69,14 @@ struct PanelView: View {
         let list = Array(model.consumers.prefix(prefs.sliceCount))
         if !list.isEmpty {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Using the most energy").font(.system(size: 11)).foregroundStyle(.secondary)
+                Text("Using the most energy").font(.system(size: 11)).foregroundStyle(.panelSecondary)
                 ForEach(list) { c in
                     Button { withAnimation { selected = selected == c.id ? nil : c.id } } label: {
                         HStack(spacing: 7) {
                             ConsumerIcon(identity: c.identity, size: 16)
                             Text(c.name).font(.system(size: 12)).lineLimit(1)
                             Spacer()
-                            Text((c.estimated ? "≈ " : "") + Fmt.watts(c.watts)).font(.system(size: 11)).monospacedDigit().foregroundStyle(.secondary)
+                            Text((c.estimated ? "≈ " : "") + Fmt.watts(c.watts)).font(.system(size: 11)).monospacedDigit().foregroundStyle(.panelSecondary)
                         }
                         .contentShape(Rectangle())
                     }
@@ -169,7 +170,7 @@ struct PanelView: View {
             if let g = model.dimmingGain, g.minutes >= 1 {
                 InfoRow(label: "Screen") {
                     HStack(spacing: 6) {
-                        Text("dimming 20% gives").foregroundStyle(.secondary)
+                        Text("dimming 20% gives").foregroundStyle(.panelSecondary)
                         Text("+" + Fmt.duration(minutes: g.minutes)).monospacedDigit().foregroundStyle(Theme.green)
                         Button("Dim") { model.dimScreen(by: 0.2) }.controlSize(.mini)
                     }
@@ -197,17 +198,17 @@ struct PanelView: View {
                     Text("\(Fmt.hoursMinutes(last.hours * 60)) · \(last.plugged ? "plugged in" : "\(last.used)% used")").monospacedDigit()
                 }
             } else {
-                InfoRow(label: "Last Sleep") { Text("Not yet").foregroundStyle(.secondary) }
+                InfoRow(label: "Last Sleep") { Text("Not yet").foregroundStyle(.panelSecondary) }
             }
             InfoRow(label: "Kept Awake By") {
                 if model.keptAwake.isEmpty {
-                    Text("Nothing").foregroundStyle(.secondary)
+                    Text("Nothing").foregroundStyle(.panelSecondary)
                 } else {
                     HStack(spacing: 4) {
                         ForEach(model.keptAwake.prefix(2)) { a in
                             if let p = a.bundlePath { Image(nsImage: IconCache.icon(path: p)).resizable().frame(width: 14, height: 14) }
                             Text(a.name).lineLimit(1)
-                            Image(systemName: a.symbol).font(.system(size: 9)).foregroundStyle(.secondary).help(a.reason)
+                            Image(systemName: a.symbol).font(.system(size: 9)).foregroundStyle(.panelSecondary).help(a.reason)
                         }
                     }
                 }
@@ -222,7 +223,7 @@ struct PanelView: View {
         return VStack(alignment: .leading, spacing: 6) {
             HStack {
                 SectionTitle(text: historyTab == 0 ? "Last 24 Hours" : "Last 10 Days")
-                Button { openSettings(.history) } label: { Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold)).foregroundStyle(.secondary) }
+                Button { openSettings(.history) } label: { Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold)).foregroundStyle(.panelSecondary) }
                     .buttonStyle(.plain).help("Open History in Settings")
             }
             Picker("", selection: $historyTab) { Text("24 Hours").tag(0); Text("10 Days").tag(1) }
@@ -257,9 +258,9 @@ struct PanelView: View {
 
     @ViewBuilder
     private func topApps(_ apps: [AppUse], title: String) -> some View {
-        Text(title).font(.system(size: 11)).foregroundStyle(.secondary).padding(.top, 2)
+        Text(title).font(.system(size: 11)).foregroundStyle(.panelSecondary).padding(.top, 2)
         if apps.isEmpty {
-            Text("Apps are measured every five minutes while on battery.").font(.system(size: 11)).foregroundStyle(.tertiary)
+            Text("Apps are measured every five minutes while on battery.").font(.system(size: 11)).foregroundStyle(.panelTertiary)
         } else {
             let top = apps.prefix(3)
             let maxShare = top.first?.share ?? 1
@@ -270,7 +271,7 @@ struct PanelView: View {
                             ConsumerIcon(identity: GroupIdentity(key: a.ref.key, kind: a.ref.kind, name: a.ref.name, bundlePath: a.ref.path, symbol: a.ref.symbol, terminalBadge: a.ref.badge ?? false), size: 16)
                             Text(a.ref.name).font(.system(size: 12)).lineLimit(1)
                             Spacer()
-                            Text(Fmt.duration(minutes: a.minutes)).font(.system(size: 11)).monospacedDigit().foregroundStyle(.secondary)
+                            Text(Fmt.duration(minutes: a.minutes)).font(.system(size: 11)).monospacedDigit().foregroundStyle(.panelSecondary)
                         }
                         GeometryReader { g in
                             Capsule().fill(Color.accentColor.opacity(0.8)).frame(width: max(4, g.size.width * CGFloat(a.share / maxShare)), height: 3)
@@ -290,7 +291,7 @@ struct PanelView: View {
         VStack(alignment: .leading, spacing: 5) {
             SectionTitle(text: "Accessories")
             if model.accessories.isEmpty {
-                Text("No accessories connected.").font(.system(size: 11)).foregroundStyle(.secondary)
+                Text("No accessories connected.").font(.system(size: 11)).foregroundStyle(.panelSecondary)
             }
             ForEach(model.accessories) { a in AccessoryRow(accessory: a) }
         }
@@ -298,7 +299,7 @@ struct PanelView: View {
 
     private var noBatteryNote: some View {
         Text("This Mac has no battery of its own. Wattline still shows your accessories.")
-            .font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            .font(.system(size: 11)).foregroundStyle(.panelSecondary).fixedSize(horizontal: false, vertical: true)
     }
 
     // MARK: Charger notes
@@ -343,7 +344,7 @@ struct Banner<Actions: View>: View {
                 Image(systemName: symbol).font(.system(size: 13)).foregroundStyle(tint).frame(width: 16)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title).font(.system(size: 12, weight: .semibold)).fixedSize(horizontal: false, vertical: true)
-                    if let detail { Text(detail).font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true) }
+                    if let detail { Text(detail).font(.system(size: 11)).foregroundStyle(.panelSecondary).fixedSize(horizontal: false, vertical: true) }
                 }
             }
             HStack { Spacer(); actions }.controlSize(.small)
@@ -361,13 +362,13 @@ struct AccessoryRow: View {
                 .font(.system(size: 14)).frame(width: 20)
             VStack(alignment: .leading, spacing: 0) {
                 Text(accessory.name).font(.system(size: 12)).lineLimit(1)
-                if let m = accessory.model, m != accessory.name { Text(m).font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(1) }
+                if let m = accessory.model, m != accessory.name { Text(m).font(.system(size: 10)).foregroundStyle(.panelSecondary).lineLimit(1) }
             }
             Spacer()
             HStack(spacing: 8) {
                 ForEach(accessory.parts) { p in
                     HStack(spacing: 3) {
-                        if !p.label.isEmpty { Text(p.label == "Case" ? "Case" : String(p.label.prefix(1))).font(.system(size: 9, weight: .semibold)).foregroundStyle(.secondary) }
+                        if !p.label.isEmpty { Text(p.label == "Case" ? "Case" : String(p.label.prefix(1))).font(.system(size: 9, weight: .semibold)).foregroundStyle(.panelSecondary) }
                         MiniRing(level: p.level).frame(width: 13, height: 13)
                         Text("\(p.level)%").font(.system(size: 11)).monospacedDigit()
                     }

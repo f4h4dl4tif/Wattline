@@ -43,6 +43,9 @@ enum SettingsPane: Hashable {
 
 final class SettingsWindowController: NSObject, NSWindowDelegate {
     private var window: NSWindow?
+    #if DEBUG
+    var debugWindow: NSWindow? { window }
+    #endif
     private let state = SettingsState()
     private let model: AppModel
     private let showTour: () -> Void
@@ -203,6 +206,13 @@ struct PanelPane: View {
     @Bindable private var prefs = Prefs.shared
     var body: some View {
         Form {
+            Section {
+                Toggle("Liquid Glass theme", isOn: $prefs.glassTheme).disabled(!Prefs.glassSupported)
+            } header: { Text("Appearance") } footer: {
+                Text(Prefs.glassSupported ? "Shows the panel and the accessory card on Apple's Liquid Glass. Takes effect the next time the panel opens."
+                                          : "Requires macOS 26.")
+                    .font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.leading).frame(maxWidth: .infinity, alignment: .leading)
+            }
             Section {
                 Stepper("Slices: \(prefs.sliceCount)", value: $prefs.sliceCount, in: 2...7)
                 Toggle("Ask before quitting an app", isOn: $prefs.askBeforeQuit)

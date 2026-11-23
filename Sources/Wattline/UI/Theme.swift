@@ -107,7 +107,7 @@ struct InfoRow<Trailing: View>: View {
     @ViewBuilder var trailing: Trailing
     var body: some View {
         HStack(spacing: 6) {
-            Text(label).foregroundStyle(.secondary)
+            Text(label).foregroundStyle(.panelSecondary)
             Spacer(minLength: 8)
             trailing
         }
@@ -155,4 +155,29 @@ struct Hatch: Shape {
         }
         return p
     }
+}
+
+// MARK: - Liquid Glass theme
+
+private struct GlassPanelKey: EnvironmentKey { static let defaultValue = false }
+extension EnvironmentValues {
+    /// True inside the panel when the Liquid Glass theme is on.
+    var glassPanel: Bool {
+        get { self[GlassPanelKey.self] }
+        set { self[GlassPanelKey.self] = newValue }
+    }
+}
+
+/// `.secondary` / `.tertiary`, except on Liquid Glass, where vibrant grays lose contrast over dark glass:
+/// there a fixed-opacity primary keeps small labels readable. Off the glass it is exactly `.secondary` / `.tertiary`.
+struct PanelText: ShapeStyle {
+    var tertiary = false
+    func resolve(in environment: EnvironmentValues) -> AnyShapeStyle {
+        if environment.glassPanel { return AnyShapeStyle(Color.primary.opacity(tertiary ? 0.45 : 0.62)) }
+        return tertiary ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.secondary)
+    }
+}
+extension ShapeStyle where Self == PanelText {
+    static var panelSecondary: PanelText { PanelText() }
+    static var panelTertiary: PanelText { PanelText(tertiary: true) }
 }

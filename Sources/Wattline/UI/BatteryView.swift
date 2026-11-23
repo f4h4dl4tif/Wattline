@@ -51,7 +51,7 @@ struct SliceBattery: View {
                     ForEach(Array(slices.enumerated()), id: \.element.id) { i, s in
                         Text("−" + Fmt.duration(minutes: s.minutes))
                             .font(.system(size: 10, weight: .medium)).monospacedDigit()
-                            .foregroundStyle(s.isSystem ? .tertiary : .secondary)
+                            .foregroundStyle(s.isSystem ? .panelTertiary : .panelSecondary)
                             .lineLimit(1).fixedSize()
                             .frame(width: widths[i + 1])
                             .opacity(widths[i + 1] >= 26 ? 1 : 0)
@@ -202,9 +202,9 @@ struct ChargeBattery: View {
             HStack {
                 Text(b.isCharging ? "Charging" : (b.percent >= limit - 1 && limit < 100 ? "Holding at \(limit)%" : (b.fullyCharged ? "Charged" : "Not Charging")))
                 Spacer()
-                if b.isCharging, let m = b.minutesToFull { Text("\(Fmt.hoursMinutes(Double(m))) to \(min(100, limit))%").foregroundStyle(.secondary) }
+                if b.isCharging, let m = b.minutesToFull { Text("\(Fmt.hoursMinutes(Double(m))) to \(min(100, limit))%").foregroundStyle(.panelSecondary) }
                 Text("\(b.percent)%").monospacedDigit()
-                if limit < 100 { Image(systemName: "arrow.right").font(.system(size: 9)).foregroundStyle(.secondary); Text("\(limit)%").foregroundStyle(.secondary) }
+                if limit < 100 { Image(systemName: "arrow.right").font(.system(size: 9)).foregroundStyle(.panelSecondary); Text("\(limit)%").foregroundStyle(.panelSecondary) }
             }
             .font(.system(size: 11))
         }
@@ -224,13 +224,13 @@ struct SliceDetail: View {
         let consumer = model.reading.consumers.first { $0.id == sliceID }
         VStack(alignment: .leading, spacing: 8) {
             if sliceID == "system" { systemBody } else if let c = consumer { body(for: c) } else {
-                Text("It's not using energy right now.").font(.system(size: 11)).foregroundStyle(.secondary)
+                Text("It's not using energy right now.").font(.system(size: 11)).foregroundStyle(.panelSecondary)
             }
         }
         .padding(10)
         .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(0.06)))
         .overlay(alignment: .topTrailing) {
-            Button(action: close) { Image(systemName: "xmark").font(.system(size: 9, weight: .bold)).foregroundStyle(.secondary).padding(6) }
+            Button(action: close) { Image(systemName: "xmark").font(.system(size: 9, weight: .bold)).foregroundStyle(.panelSecondary).padding(6) }
                 .buttonStyle(.plain).accessibilityLabel("Close")
         }
     }
@@ -241,24 +241,24 @@ struct SliceDetail: View {
             ConsumerIcon(identity: c.identity, size: 26)
             VStack(alignment: .leading, spacing: 1) {
                 Text(c.name).font(.system(size: 13, weight: .semibold)).lineLimit(2)
-                Text(c.gpuWatts > 0.05 ? "CPU + GPU" : (c.identity.detail ?? "CPU")).font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(2)
+                Text(c.gpuWatts > 0.05 ? "CPU + GPU" : (c.identity.detail ?? "CPU")).font(.system(size: 10)).foregroundStyle(.panelSecondary).lineLimit(2)
             }
             Spacer()
             Text((c.estimated ? "≈ " : "") + Fmt.watts(model.smoothed[c.id] ?? c.watts)).font(.system(size: 12, weight: .medium)).monospacedDigit()
         }
         if c.identity.kind == .service, let d = c.identity.detail {
-            Text(d + ". macOS's own work can't be quit: it settles by itself.").font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            Text(d + ". macOS's own work can't be quit: it settles by itself.").font(.system(size: 11)).foregroundStyle(.panelSecondary).fixedSize(horizontal: false, vertical: true)
         }
         VStack(spacing: 3) {
             ForEach(c.processes.prefix(7)) { p in
                 HStack(alignment: .firstTextBaseline) {
-                    Text(p.name).font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    Text(p.name).font(.system(size: 11)).foregroundStyle(.panelSecondary).fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 8)
-                    Text((p.estimated ? "≈ " : "") + Fmt.watts(p.watts)).font(.system(size: 11)).monospacedDigit().foregroundStyle(.secondary)
+                    Text((p.estimated ? "≈ " : "") + Fmt.watts(p.watts)).font(.system(size: 11)).monospacedDigit().foregroundStyle(.panelSecondary)
                 }
             }
             if c.processes.count > 7 {
-                Text("and \(c.processes.count - 7) more").font(.system(size: 10)).foregroundStyle(.tertiary).frame(maxWidth: .infinity, alignment: .leading)
+                Text("and \(c.processes.count - 7) more").font(.system(size: 10)).foregroundStyle(.panelTertiary).frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         if c.identity.canQuit {
@@ -286,17 +286,17 @@ struct SliceDetail: View {
                 SymbolTile(symbol: "sun.max.fill", size: 26, tint: .gray)
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Display & System").font(.system(size: 13, weight: .semibold))
-                    Text("The power no app accounts for").font(.system(size: 10)).foregroundStyle(.secondary)
+                    Text("The power no app accounts for").font(.system(size: 10)).foregroundStyle(.panelSecondary)
                 }
                 Spacer()
                 Text(Fmt.watts(s?.watts ?? model.reading.unaccountedWatts)).font(.system(size: 12, weight: .medium)).monospacedDigit()
             }
             Text("The screen, graphics, Wi‑Fi, Bluetooth and macOS itself. A dimmer screen makes it smaller.")
-                .font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                .font(.system(size: 11)).foregroundStyle(.panelSecondary).fixedSize(horizontal: false, vertical: true)
             if let b = Brightness.level() {
                 HStack(spacing: 6) {
-                    Image(systemName: "sun.max").font(.system(size: 11)).foregroundStyle(.secondary)
-                    Text("Screen at \(Int((b * 100).rounded()))%, ≈ \(Fmt.watts(Brightness.backlightWatts(at: b)))").font(.system(size: 11)).foregroundStyle(.secondary)
+                    Image(systemName: "sun.max").font(.system(size: 11)).foregroundStyle(.panelSecondary)
+                    Text("Screen at \(Int((b * 100).rounded()))%, ≈ \(Fmt.watts(Brightness.backlightWatts(at: b)))").font(.system(size: 11)).foregroundStyle(.panelSecondary)
                     Spacer()
                     if let g = model.dimmingGain, g.minutes >= 1 {
                         Text("dimming 20% gives +\(Fmt.duration(minutes: g.minutes))").font(.system(size: 11)).foregroundStyle(Theme.green)
@@ -305,13 +305,13 @@ struct SliceDetail: View {
                 }
             }
             if !small.isEmpty {
-                Text("Smaller apps, not given a slice").font(.system(size: 10, weight: .semibold)).foregroundStyle(.secondary).padding(.top, 2)
+                Text("Smaller apps, not given a slice").font(.system(size: 10, weight: .semibold)).foregroundStyle(.panelSecondary).padding(.top, 2)
                 ForEach(Array(small)) { c in
                     HStack(spacing: 6) {
                         ConsumerIcon(identity: c.identity, size: 14)
-                        Text(c.name).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
+                        Text(c.name).font(.system(size: 11)).foregroundStyle(.panelSecondary).lineLimit(1)
                         Spacer()
-                        Text((c.estimated ? "≈ " : "") + Fmt.watts(model.smoothed[c.id] ?? c.watts)).font(.system(size: 11)).monospacedDigit().foregroundStyle(.secondary)
+                        Text((c.estimated ? "≈ " : "") + Fmt.watts(model.smoothed[c.id] ?? c.watts)).font(.system(size: 11)).monospacedDigit().foregroundStyle(.panelSecondary)
                     }
                 }
             }

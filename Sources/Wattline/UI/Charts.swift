@@ -26,7 +26,7 @@ struct LevelBarsChart: View {
                     }
                 }
                 VStack(alignment: .leading) { Text("100%"); Spacer(); Text("50%"); Spacer(); Text("0%") }
-                    .font(.system(size: 8)).foregroundStyle(.secondary).frame(width: 24)
+                    .font(.system(size: 8)).foregroundStyle(.panelSecondary).frame(width: 24)
             }
             .frame(height: height)
             hourLabels.padding(.trailing, 28)
@@ -41,7 +41,7 @@ struct LevelBarsChart: View {
             ForEach(starts.indices, id: \.self) { i in
                 if let d = starts[i], cal.component(.minute, from: d) < 30, cal.component(.hour, from: d) % 6 == 0 {
                     Text(String(format: "%02d", cal.component(.hour, from: d)))
-                        .font(.system(size: 8)).foregroundStyle(.secondary)
+                        .font(.system(size: 8)).foregroundStyle(.panelSecondary)
                         .position(x: geo.size.width * (CGFloat(i) + 0.5) / CGFloat(bars.count), y: 5)
                 }
             }
@@ -88,12 +88,12 @@ struct DayBarsChart: View {
                     }
                 }
                 VStack(alignment: .leading) { Text("\(Int(maxUsed))%"); Spacer(); Text("\(Int(maxUsed / 2))%"); Spacer(); Text("0%") }
-                    .font(.system(size: 8)).foregroundStyle(.secondary).frame(width: 24)
+                    .font(.system(size: 8)).foregroundStyle(.panelSecondary).frame(width: 24)
             }
             .frame(height: height)
             if days.count <= 16 {
                 HStack(spacing: 0) {
-                    ForEach(days) { d in Text(d.date.formatted(labelStyle)).font(.system(size: 8)).foregroundStyle(.secondary).frame(maxWidth: .infinity) }
+                    ForEach(days) { d in Text(d.date.formatted(labelStyle)).font(.system(size: 8)).foregroundStyle(.panelSecondary).frame(maxWidth: .infinity) }
                 }
                 .padding(.trailing, 28)
             }
@@ -156,7 +156,7 @@ struct LineChart: View {
             }
             VStack(alignment: .leading) {
                 Text(label(hi)); Spacer(); Text(label((hi + lo) / 2)); Spacer(); Text(label(lo))
-            }.font(.system(size: 9)).foregroundStyle(.secondary).frame(width: 40, alignment: .leading)
+            }.font(.system(size: 9)).foregroundStyle(.panelSecondary).frame(width: 40, alignment: .leading)
         }
         .frame(height: height)
     }
@@ -209,7 +209,7 @@ struct RangeBarsChart: View {
                 }
             }
             VStack(alignment: .leading) { Text("\(Int(hi))\(unit)"); Spacer(); Text("\(Int((hi + lo) / 2))\(unit)"); Spacer(); Text("\(Int(lo))\(unit)") }
-                .font(.system(size: 9)).foregroundStyle(.secondary).frame(width: 34, alignment: .leading)
+                .font(.system(size: 9)).foregroundStyle(.panelSecondary).frame(width: 34, alignment: .leading)
         }
         .frame(height: height)
     }
@@ -237,7 +237,7 @@ struct HourOfDayChart: View {
             }
             .frame(height: height)
             HStack { Text("00"); Spacer(); Text("06"); Spacer(); Text("12"); Spacer(); Text("18"); Spacer(); Text("24") }
-                .font(.system(size: 8)).foregroundStyle(.secondary)
+                .font(.system(size: 8)).foregroundStyle(.panelSecondary)
         }
     }
 }

@@ -4,25 +4,43 @@ import SwiftUI
 /// Put AirPods in, and a glass card slides in below the menu bar with a ring for each part.
 final class AccessoryCardController {
     private var window: NSPanel?
+    #if DEBUG
+    var debugWindow: NSWindow? { window }
+    #endif
     private var hideWork: DispatchWorkItem?
     private let state = CardState()
+    private var builtWithGlass = false
     var onClick: (() -> Void)?
 
     func show(_ a: Accessory, anchor: NSRect?) {
         let size = NSSize(width: 340, height: 128)
+        let glass = Prefs.shared.useGlass
+        if window != nil, builtWithGlass != glass { window?.orderOut(nil); window = nil }   // theme changed: rebuild
+        state.glass = glass
         if window == nil {
+            builtWithGlass = glass
             let w = NSPanel(contentRect: NSRect(origin: .zero, size: size), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
             w.isOpaque = false; w.backgroundColor = .clear; w.hasShadow = true
             w.level = .statusBar
             w.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
-            let effect = NSVisualEffectView(frame: NSRect(origin: .zero, size: size))
-            effect.material = .hudWindow; effect.blendingMode = .behindWindow; effect.state = .active
-            effect.wantsLayer = true; effect.layer?.cornerRadius = 24; effect.layer?.cornerCurve = .continuous; effect.layer?.masksToBounds = true
             let host = NSHostingView(rootView: AccessoryCardView(state: state, onClick: { [weak self] in self?.hide(); self?.onClick?() },
                                                                   onHover: { [weak self] h in self?.hovering(h) }))
-            host.frame = effect.bounds; host.autoresizingMask = [.width, .height]
-            effect.addSubview(host)
-            w.contentView = effect
+            if #available(macOS 26, *), glass {
+                // Liquid Glass theme: a dark-tinted glass HUD keeps the white rings and labels legible on any wallpaper.
+                let g = NSGlassEffectView(frame: NSRect(origin: .zero, size: size))
+                g.cornerRadius = 24
+                g.tintColor = NSColor.black.withAlphaComponent(0.35)
+                host.frame = g.bounds; host.autoresizingMask = [.width, .height]
+                g.contentView = host
+                w.contentView = g
+            } else {
+                let effect = NSVisualEffectView(frame: NSRect(origin: .zero, size: size))
+                effect.material = .hudWindow; effect.blendingMode = .behindWindow; effect.state = .active
+                effect.wantsLayer = true; effect.layer?.cornerRadius = 24; effect.layer?.cornerCurve = .continuous; effect.layer?.masksToBounds = true
+                host.frame = effect.bounds; host.autoresizingMask = [.width, .height]
+                effect.addSubview(host)
+                w.contentView = effect
+            }
             window = w
         }
         guard let w = window, let screen = NSScreen.main else { return }
@@ -74,7 +92,7 @@ final class AccessoryCardController {
     }
 }
 
-@Observable final class CardState { var accessory: Accessory?; var appeared = false }
+@Observable final class CardState { var accessory: Accessory?; var appeared = false; var glass = false }
 
 struct AccessoryCardView: View {
     var state: CardState
@@ -114,7 +132,7 @@ struct AccessoryCardView: View {
         }
         .padding(.horizontal, 18)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.black.opacity(0.25))
+        .background(state.glass ? Color.clear : Color.black.opacity(0.25))   // glass carries its own tint
         .contentShape(Rectangle())
         .onTapGesture(perform: onClick)
         .onHover(perform: onHover)

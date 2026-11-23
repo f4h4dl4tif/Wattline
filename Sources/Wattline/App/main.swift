@@ -41,6 +41,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         model.onAccessoryConnected = { [weak self] a in self?.showCard(a) }
         model.start()
         if Snapshot.runIfRequested(model: model) { return }
+        #if DEBUG
+        if runGlassSnapshotIfRequested() { return }
+        #endif
         DragGhost.shared.panelFrame = { [weak self] in self?.panel?.frame ?? .zero }
 
         HotKey.action = { [weak self] in self?.togglePanel() }
@@ -202,6 +205,71 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
+#if DEBUG
+// MARK: Glass snapshot (debug only)
+
+extension AppDelegate {
+    /// `Wattline --glass-snapshot <dir>`: opens the panel, the accessory card and the Panel settings pane with the
+    /// Liquid Glass theme off and on, in light and dark, captures each on-screen window (real glass rendering) to PNG,
+    /// restores the glass preference and appearance, then quits.
+    fileprivate func runGlassSnapshotIfRequested() -> Bool {
+        let args = CommandLine.arguments
+        guard let i = args.firstIndex(of: "--glass-snapshot"), i + 1 < args.count else { return false }
+        let out = URL(fileURLWithPath: args[i + 1])
+        try? FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
+        let savedGlass = prefs.glassTheme
+        var steps: [(scheme: String, glass: Bool)] = []
+        for scheme in ["light", "dark"] { for glass in [false, true] { steps.append((scheme, glass)) } }
+        updateStatusItem()
+
+        func after(_ s: Double, _ body: @escaping () -> Void) { DispatchQueue.main.asyncAfter(deadline: .now() + s, execute: body) }
+        func run(_ index: Int) {
+            guard index < steps.count else {
+                prefs.glassTheme = savedGlass
+                NSApp.appearance = nil
+                after(0.3) { NSApp.terminate(nil) }
+                return
+            }
+            let step = steps[index]
+            let name = { (screen: String) in "\(screen)-\(step.glass ? "glass" : "plain")-\(step.scheme).png" }
+            NSApp.appearance = NSAppearance(named: step.scheme == "dark" ? .darkAqua : .aqua)
+            prefs.glassTheme = step.glass
+            after(0.4) { [self] in
+                openPanel()
+                after(2.0) { [self] in
+                    Self.capture(panel, to: out.appendingPathComponent(name("panel")))
+                    closePanel()
+                    showCardPreview()
+                    after(1.8) { [self] in
+                        Self.capture(card?.debugWindow, to: out.appendingPathComponent(name("card")))
+                        card?.hide()
+                        openSettings(.panel)
+                        after(1.5) { [self] in
+                            Self.capture(settings?.debugWindow, to: out.appendingPathComponent(name("settings")))
+                            settings?.debugWindow?.close()
+                            after(0.6) { run(index + 1) }
+                        }
+                    }
+                }
+            }
+        }
+        after(4.5) { run(0) }
+        return true
+    }
+
+    /// Captures an on-screen window of this app; unlike cacheDisplay this renders Liquid Glass.
+    fileprivate static func capture(_ window: NSWindow?, to url: URL) {
+        typealias CapFn = @convention(c) (CGRect, UInt32, UInt32, UInt32) -> Unmanaged<CGImage>?
+        guard let window, let sym = dlsym(dlopen(nil, RTLD_NOW), "CGWindowListCreateImage") else { print("no window: \(url.lastPathComponent)"); return }
+        let f = unsafeBitCast(sym, to: CapFn.self)
+        guard let img = f(.null, 8, UInt32(window.windowNumber), 1 | 8)?.takeRetainedValue(),
+              let png = NSBitmapImageRep(cgImage: img).representation(using: .png, properties: [:]) else { print("capture failed: \(url.lastPathComponent)"); return }
+        try? png.write(to: url)
+        print("wrote \(url.lastPathComponent)")
+    }
+}
+#endif
+
 /// A borderless panel that looks like a menu bar extra and closes when you click elsewhere.
 final class PanelWindow: NSPanel {
     var onClose: (() -> Void)?
@@ -219,17 +287,6 @@ final class PanelWindow: NSPanel {
         isMovable = false
         hidesOnDeactivate = false
 
-        let effect = NSVisualEffectView()
-        effect.material = .popover
-        effect.blendingMode = .behindWindow
-        effect.state = .active
-        effect.wantsLayer = true
-        effect.layer?.cornerRadius = 12
-        effect.layer?.cornerCurve = .continuous
-        effect.layer?.masksToBounds = true
-        effect.layer?.borderWidth = 0.5
-        effect.layer?.borderColor = NSColor.white.withAlphaComponent(0.12).cgColor
-
         let scroll = NSScrollView()
         scroll.drawsBackground = false
         scroll.hasVerticalScroller = true
@@ -237,12 +294,42 @@ final class PanelWindow: NSPanel {
         scroll.scrollerStyle = .overlay
         scroll.documentView = hosting
         scroll.translatesAutoresizingMaskIntoConstraints = false
-        effect.addSubview(scroll)
-        NSLayoutConstraint.activate([
-            scroll.leadingAnchor.constraint(equalTo: effect.leadingAnchor), scroll.trailingAnchor.constraint(equalTo: effect.trailingAnchor),
-            scroll.topAnchor.constraint(equalTo: effect.topAnchor), scroll.bottomAnchor.constraint(equalTo: effect.bottomAnchor),
-        ])
-        contentView = effect
+
+        if #available(macOS 26, *), Prefs.shared.useGlass {
+            // Liquid Glass theme: the panel floats on glass, like the system's own menu bar extras.
+            let glass = NSGlassEffectView()
+            glass.cornerRadius = 12
+            // A light wash per appearance keeps the panel's many small labels legible over any wallpaper.
+            glass.tintColor = NSColor(name: nil) { appearance in
+                appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                    ? NSColor(white: 0.34, alpha: 0.55) : NSColor(white: 1.0, alpha: 0.6)
+            }
+            let holder = NSView()
+            holder.addSubview(scroll)
+            NSLayoutConstraint.activate([
+                scroll.leadingAnchor.constraint(equalTo: holder.leadingAnchor), scroll.trailingAnchor.constraint(equalTo: holder.trailingAnchor),
+                scroll.topAnchor.constraint(equalTo: holder.topAnchor), scroll.bottomAnchor.constraint(equalTo: holder.bottomAnchor),
+            ])
+            glass.contentView = holder
+            contentView = glass
+        } else {
+            let effect = NSVisualEffectView()
+            effect.material = .popover
+            effect.blendingMode = .behindWindow
+            effect.state = .active
+            effect.wantsLayer = true
+            effect.layer?.cornerRadius = 12
+            effect.layer?.cornerCurve = .continuous
+            effect.layer?.masksToBounds = true
+            effect.layer?.borderWidth = 0.5
+            effect.layer?.borderColor = NSColor.white.withAlphaComponent(0.12).cgColor
+            effect.addSubview(scroll)
+            NSLayoutConstraint.activate([
+                scroll.leadingAnchor.constraint(equalTo: effect.leadingAnchor), scroll.trailingAnchor.constraint(equalTo: effect.trailingAnchor),
+                scroll.topAnchor.constraint(equalTo: effect.topAnchor), scroll.bottomAnchor.constraint(equalTo: effect.bottomAnchor),
+            ])
+            contentView = effect
+        }
         hosting.sizingOptions = [.intrinsicContentSize]
         NotificationCenter.default.addObserver(forName: NSView.frameDidChangeNotification, object: hosting, queue: .main) { [weak self] _ in
             self?.fitToContent()

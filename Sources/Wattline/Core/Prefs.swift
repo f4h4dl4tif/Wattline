@@ -91,6 +91,9 @@ final class Prefs {
     // Warmth
     var warmBanner: Bool { didSet { d.set(warmBanner, forKey: "warmBanner") } }
 
+    // Appearance: optional Liquid Glass panel and accessory card (macOS 26+)
+    var glassTheme: Bool { didSet { d.set(glassTheme, forKey: "glassTheme") } }
+
     // General
     var hotkeyEnabled: Bool { didSet { d.set(hotkeyEnabled, forKey: "hotkeyEnabled") } }
     var tourDone: Bool { didSet { d.set(tourDone, forKey: "tourDone") } }
@@ -106,7 +109,7 @@ final class Prefs {
             "meetingWarning": false, "meetingLead": 30, "insightMoreThanUsual": true, "insightNewApp": true, "insightsNotify": false,
             "chime": "off", "chimeSound": "wattline", "accessoryCard": true, "cardPosition": "belowIcon", "cardSeconds": 6.0,
             "retentionDays": 90, "autoLPMBelow": false, "autoLPMLevel": 20, "autoLPMAfter": false, "autoLPMAfterMinutes": 60,
-            "autoLPMOffWhenPlugged": true, "calendarCharging": false, "calendarHours": 3, "calendarCountLocations": true, "warmBanner": true, "hotkeyEnabled": true, "tourDone": false,
+            "autoLPMOffWhenPlugged": true, "calendarCharging": false, "calendarHours": 3, "calendarCountLocations": true, "warmBanner": true, "glassTheme": false, "hotkeyEnabled": true, "tourDone": false,
         ])
         iconStyle = IconStyle(rawValue: d.string(forKey: "iconStyle") ?? "") ?? .battery
         besideIcon = BesideIcon(rawValue: d.string(forKey: "besideIcon") ?? "") ?? .percentage
@@ -153,9 +156,17 @@ final class Prefs {
         calendarHours = d.integer(forKey: "calendarHours")
         calendarCountLocations = d.bool(forKey: "calendarCountLocations")
         warmBanner = d.bool(forKey: "warmBanner")
+        glassTheme = d.bool(forKey: "glassTheme")
         hotkeyEnabled = d.bool(forKey: "hotkeyEnabled")
         tourDone = d.bool(forKey: "tourDone")
     }
+
+    /// Liquid Glass needs macOS 26; on older systems the setting is shown disabled and ignored.
+    static var glassSupported: Bool {
+        if #available(macOS 26, *) { return true }
+        return false
+    }
+    var useGlass: Bool { glassTheme && Prefs.glassSupported }
 
     func isHidden(_ c: Consumer) -> Bool { hiddenApps.contains(c.id) }
 }
